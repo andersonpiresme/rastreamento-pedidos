@@ -204,8 +204,8 @@ export default function App() {
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Rastreamento de Pedidos</h1>
-            <p className="text-slate-600 text-sm">Visual moderno estilo e‑commerce para seus clientes acompanharem o andamento.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Rastreamento de Pedidos Filato Bene</h1>
+            <p className="text-slate-600 text-sm">Acompanhamento centralizado dos Pedidos Filato Bene com a Cristal 10 Representações</p>
           </div>
           <div className="flex items-center gap-2">
             <input
