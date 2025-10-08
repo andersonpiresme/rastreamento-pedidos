@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
-// === CONFIGURAÇÃO ===
+/* ==================== CONFIG ==================== */
 const STEPS = [
   { id: 1, label: "1 - Recebimento do Pedido" },
   { id: 2, label: "2 - Recebimento de Materiais" },
@@ -10,7 +10,6 @@ const STEPS = [
   { id: 6, label: "6 - Entrega Realizada" },
 ];
 
-// Paleta simples para estados
 const statusTone = (status) => {
   const s = (status || "").toLowerCase();
   if (s.includes("aguardando")) return "bg-amber-50 text-amber-700 border-amber-200";
@@ -19,20 +18,30 @@ const statusTone = (status) => {
   return "bg-slate-50 text-slate-700 border-slate-200";
 };
 
-// Converte "2 - Recebimento de Materiais" -> 2
 const etapaIndex = (etapa) => {
-  if (!etapa) return 0;
+  if (!etapa) return 1;
   const m = String(etapa).match(/^(\d+)/);
-  const idx = m ? parseInt(m[1], 10) : 0;
+  const idx = m ? parseInt(m[1], 10) : 1;
   return Math.min(Math.max(idx, 1), STEPS.length);
 };
 
-// Utilidade para datas
-const formatDate = (d) => new Date(d).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-const daysDiff = (a, b = new Date()) => Math.ceil((new Date(a) - new Date(b)) / (1000 * 60 * 60 * 24));
+const formatDate = (d) => {
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return "-";
+  try {
+    return date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  } catch {
+    return date.toLocaleDateString("pt-BR");
+  }
+};
+const daysDiff = (a, b = new Date()) => {
+  const da = new Date(a);
+  const db = new Date(b);
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return null;
+  return Math.ceil((da - db) / (1000 * 60 * 60 * 24));
+};
 
-// === EXEMPLO DE DADOS ===
-// Substitua por sua integração (Sheets, API, CSV) mantendo as chaves abaixo
+/* ============== DADOS EXEMPLO (troque pela sua origem) ============== */
 const SAMPLE = [
   {
     industria: "KDU",
@@ -43,7 +52,7 @@ const SAMPLE = [
     previsaoEntrega: "2026-01-30",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
-    produtos: "Calça Sarja"
+    produtos: "Calça Sarja",
   },
   {
     industria: "Luiz Eugenio",
@@ -54,7 +63,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-12-15",
     etapa: "3 - Na fila de produção",
     status: "Aguardando janela de produção",
-    produtos: "Camisas LD"
+    produtos: "Camisas LD",
   },
   {
     industria: "Luiz Eugenio",
@@ -65,7 +74,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-12-15",
     etapa: "3 - Na fila de produção",
     status: "Aguardando janela de produção",
-    produtos: "Camisas Lisas"
+    produtos: "Camisas Lisas",
   },
   {
     industria: "Luiz Eugenio",
@@ -76,7 +85,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-11-30",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
-    produtos: "Calças Sarja"
+    produtos: "Calças Sarja",
   },
   {
     industria: "Don Geuroth",
@@ -87,16 +96,16 @@ const SAMPLE = [
     previsaoEntrega: "2025-10-25",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Etiquetas e Logos",
-    produtos: "Camisetas e Polos"
+    produtos: "Camisetas e Polos",
   },
 ];
 
+/* ==================== COMPONENTES ==================== */
 function ProgressStepper({ etapa }) {
   const idx = etapaIndex(etapa); // 1..6
   return (
     <div className="w-full">
       <div className="relative flex items-center justify-between">
-        {/* Linha de fundo */}
         <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-200" />
         {STEPS.map((s, i) => {
           const stepNo = i + 1;
@@ -104,12 +113,12 @@ function ProgressStepper({ etapa }) {
           const isCurrent = stepNo === idx;
           return (
             <div key={s.id} className="relative z-10 flex flex-col items-center w-full">
-              <div className={
-                `flex items-center justify-center w-7 h-7 rounded-full border text-xs font-semibold 
+              <div
+                className={`flex items-center justify-center w-7 h-7 rounded-full border text-xs font-semibold 
                  ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : ""}
                  ${isCurrent && !isDone ? "bg-sky-600 border-sky-600 text-white" : ""}
-                 ${!isDone && !isCurrent ? "bg-white border-slate-300 text-slate-500" : ""}`
-              }>
+                 ${!isDone && !isCurrent ? "bg-white border-slate-300 text-slate-500" : ""}`}
+              >
                 {stepNo}
               </div>
               <span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight">
@@ -124,30 +133,30 @@ function ProgressStepper({ etapa }) {
 }
 
 function OrderCard({ o }) {
-  const idx = etapaIndex(o.etapa);
-  const pct = Math.round((idx - 1) / (STEPS.length - 1) * 100);
+  const idx = etapaIndex(o.etapa || "1 - Recebimento do Pedido");
+  const pct = Math.round(((idx - 1) / (STEPS.length - 1)) * 100);
   const etaDays = daysDiff(o.previsaoEntrega);
   const tone = statusTone(o.status);
 
- return (
-  <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm bg-white hover:shadow-md transition">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div>
-        <div className="text-slate-900 font-semibold text-lg">{o.industria}</div>
-        <div className="text-slate-500 text-sm flex flex-wrap items-center gap-1">
-          <span>
-            Nº ERP <span className="font-medium text-slate-700">{o.numeroERP}</span> • Emissão {formatDate(o.dataEmissao)}
-          </span>
-          {o.produtos && (
-            <>
-              <span>•</span>
-              <span className="font-medium text-slate-700">{o.produtos}</span>
-            </>
-          )}
+  return (
+    <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm bg-white hover:shadow-md transition">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div className="text-slate-900 font-semibold text-lg">{o.industria}</div>
+          <div className="text-slate-500 text-sm flex flex-wrap items-center gap-1">
+            <span>
+              Nº ERP <span className="font-medium text-slate-700">{o.numeroERP}</span> • Emissão {formatDate(o.dataEmissao)}
+            </span>
+            {o.produtos && (
+              <>
+                <span>•</span>
+                <span className="font-medium text-slate-700">{o.produtos}</span>
+              </>
+            )}
+          </div>
         </div>
+        <div className={`px-3 py-1 rounded-full text-xs border ${tone}`}>{o.status}</div>
       </div>
-      <div className={`px-3 py-1 rounded-full text-xs border ${tone}`}>{o.status}</div>
-    </div>
 
       <div className="mt-4">
         <ProgressStepper etapa={o.etapa} />
@@ -158,8 +167,12 @@ function OrderCard({ o }) {
           <div className="h-full bg-sky-600" style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-2 text-xs text-slate-600 flex items-center justify-between">
-          <span>Etapa atual: <span className="font-medium text-slate-800">{o.etapa}</span></span>
-          <span>Progresso: <span className="font-medium text-slate-800">{pct}%</span></span>
+          <span>
+            Etapa atual: <span className="font-medium text-slate-800">{o.etapa}</span>
+          </span>
+          <span>
+            Progresso: <span className="font-medium text-slate-800">{pct}%</span>
+          </span>
         </div>
       </div>
 
@@ -178,8 +191,12 @@ function OrderCard({ o }) {
         </div>
         <div className="bg-slate-50 rounded-xl p-3">
           <div className="text-[11px] text-slate-500">ETA</div>
-          <div className={`font-semibold ${etaDays < 0 ? "text-emerald-700" : etaDays <= 15 ? "text-amber-700" : "text-slate-900"}`}>
-            {etaDays < 0 ? "Entregue / vencido" : `${etaDays} dias`}
+          <div
+            className={`font-semibold ${
+              etaDays === null ? "text-slate-900" : etaDays < 0 ? "text-emerald-700" : etaDays <= 15 ? "text-amber-700" : "text-slate-900"
+            }`}
+          >
+            {etaDays === null ? "-" : etaDays < 0 ? "Entregue / vencido" : `${etaDays} dias`}
           </div>
         </div>
       </div>
@@ -187,51 +204,169 @@ function OrderCard({ o }) {
   );
 }
 
-export default function App() {
+/* ==================== DASHBOARD ==================== */
+function Dashboard({ onLogout }) {
   const [q, setQ] = useState("");
-  const data = SAMPLE; // troque pela sua origem real
+  const data = SAMPLE;
 
   const filtered = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return data;
     return data.filter((o) =>
-      [o.industria, o.numeroERP, o.status, o.etapa].join(" ").toLowerCase().includes(k)
+      [o.industria, o.numeroERP, o.status, o.etapa, o.produtos].join(" ").toLowerCase().includes(k)
     );
   }, [q, data]);
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Rastreamento de Pedidos Filato Bene</h1>
-            <p className="text-slate-600 text-sm">Acompanhamento centralizado dos Pedidos Filato Bene com a Cristal 10 Representações</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por indústria, nº ERP, status..."
-              className="w-full sm:w-80 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
-          </div>
-        </header>
+    <div className="min-h-screen bg-slate-100">
+      {/* Header com logo */}
+      <header className="bg-white/80 backdrop-blur sticky top-0 z-20 border-b border-slate-200">
+  <div className="max-w-6xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
+    
+    {/* Logos lado a lado */}
+    <div className="flex items-center gap-4">
+      <img src="/cristal10.svg" alt="Filato Bene" className="h-7" />
+      <img src="/cristal10-dark.png" alt="Cristal 10" className="h-7 opacity-90" />
+      <h1 className="text-lg sm:text-xl font-semibold text-slate-900 ml-2">
+        Rastreamento de Pedidos
+      </h1>
+    </div>
 
-        <main className="mt-6 grid gap-4 sm:gap-6 grid-cols-1">
+    {/* Busca + botão sair */}
+    <div className="flex items-center gap-2">
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar por indústria, nº ERP, status..."
+        className="w-48 sm:w-80 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+      />
+      <button
+        onClick={onLogout}
+        className="px-3 py-2 text-xs rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
+      >
+        Sair
+      </button>
+    </div>
+  </div>
+</header>
+
+      {/* Conteúdo */}
+      <main className="p-4 sm:p-8 max-w-6xl mx-auto">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1">
           {filtered.map((o) => (
             <OrderCard key={o.numeroERP + o.industria} o={o} />
           ))}
-          {filtered.length === 0 && (
-            <div className="text-slate-500 text-sm">Nenhum pedido encontrado com esse filtro.</div>
-          )}
-        </main>
+          {filtered.length === 0 && <div className="text-slate-500 text-sm">Nenhum pedido encontrado com esse filtro.</div>}
+        </div>
 
         <footer className="mt-10 text-[11px] text-slate-500">
-          <p>
-            Atualizado em: 08/10/2025
-          </p>
+          <p>Desenvolvido por <strong className="text-slate-700">Cristal10 Representações</strong> • {new Date().getFullYear()}</p>
+          <p>Atualizado em: 08/10/2025</p>
         </footer>
-      </div>
+      </main>
     </div>
   );
+}
+
+/* ==================== APP (LOGIN + SESSÃO) ==================== */
+export default function App() {
+  const [senha, setSenha] = useState("");
+  const [mostrar, setMostrar] = useState(false);
+  const [lembrar, setLembrar] = useState(true);
+  const [autenticado, setAutenticado] = useState(false);
+
+  const senhaCorreta = "filato2025"; // troque aqui
+
+  // manter sessão (localStorage)
+  useEffect(() => {
+    const ok = localStorage.getItem("authOK") === "1";
+    if (ok) setAutenticado(true);
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (senha === senhaCorreta) {
+      setAutenticado(true);
+      if (lembrar) localStorage.setItem("authOK", "1");
+    } else {
+      alert("Senha incorreta. Tente novamente.");
+    }
+  };
+
+  const handleLogout = () => {
+    setAutenticado(false);
+    localStorage.removeItem("authOK");
+    setSenha("");
+  };
+
+  if (!autenticado) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo topo login */}
+          <div className="flex items-center justify-center mb-6">
+            {/* usa a variação PNG para mais contraste em fundos claros */}
+            <img src="/cristal10-dark.png" alt="Cristal 10" className="h-10" />
+          </div>
+
+          <form
+            onSubmit={handleLogin}
+            className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8"
+          >
+            <h1 className="text-2xl font-semibold text-slate-900 text-center">Área Restrita</h1>
+            <p className="mt-1 text-center text-slate-500 text-sm">
+              Acesse o rastreamento de pedidos Filato Bene
+            </p>
+
+            <div className="mt-6">
+              <label className="text-xs text-slate-600 mb-1 block">Senha</label>
+              <div className="relative">
+                <input
+                  autoComplete="current-password"
+                  type={mostrar ? "text" : "password"}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="Digite a senha"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrar((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs px-2 py-1 rounded hover:bg-slate-100"
+                >
+                  {mostrar ? "Ocultar" : "Mostrar"}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <label className="flex items-center gap-2 text-xs text-slate-600 select-none">
+                <input
+                  type="checkbox"
+                  checked={lembrar}
+                  onChange={(e) => setLembrar(e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                Manter conectado
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="mt-5 w-full bg-sky-600 text-white py-2.5 rounded-lg hover:bg-sky-700 transition shadow-sm"
+            >
+              Entrar
+            </button>
+
+            <div className="mt-6 flex items-center justify-center">
+              <img src="/cristal10.svg" alt="Cristal 10" className="h-6 opacity-70" />
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // autenticado → painel
+  return <Dashboard onLogout={handleLogout} />;
 }
