@@ -213,8 +213,7 @@ export default function App() {
 
         <footer className="mt-10 text-[11px] text-slate-500">
           <p>
-            Dica: para integrar com sua planilha, gere um JSON com estas chaves: {"{"}industria, dataEmissao, faturado, pendente, numeroERP, previsaoEntrega, etapa, status{"}"}. 
-            Se quiser, posso conectar direto ao Google Sheets e automatizar a atualização.
+            Atualizado em: 08/10/2025
           </p>
         </footer>
       </div>
