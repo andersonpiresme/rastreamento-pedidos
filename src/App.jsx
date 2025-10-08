@@ -121,9 +121,9 @@ function ProgressStepper({ etapa }) {
               >
                 {stepNo}
               </div>
-              <span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight">
-                {s.label.replace(/^\d+\s-\s/, "")}
-              </span>
+		<span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight min-h-[32px] flex items-start justify-center text-balance">
+  			{s.label.replace(/^\d+\s-\s/, "")}
+		</span>
             </div>
           );
         })}
@@ -220,35 +220,47 @@ function Dashboard({ onLogout }) {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Header com logo */}
-      <header className="bg-white/80 backdrop-blur sticky top-0 z-20 border-b border-slate-200">
-  <div className="max-w-6xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
+
+
+<header className="bg-white/80 backdrop-blur sticky top-0 z-20 border-b border-slate-200">
+  <div className="relative max-w-6xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
     
-    {/* Logos lado a lado */}
-    <div className="flex items-center gap-4">
-      <img src="/cristal10.svg" alt="Filato Bene" className="h-7" />
-      <img src="/cristal10-dark.png" alt="Cristal 10" className="h-7 opacity-90" />
-      <h1 className="text-lg sm:text-xl font-semibold text-slate-900 ml-2">
-        Rastreamento de Pedidos
-      </h1>
+    {/* Logo esquerda */}
+    <div className="flex items-center">
+      <img
+        src="/cristal10.svg"
+        alt="Filato Bene"
+        className="h-6 sm:h-8"
+      />
     </div>
 
-    {/* Busca + botão sair */}
-    <div className="flex items-center gap-2">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Buscar por indústria, nº ERP, status..."
-        className="w-48 sm:w-80 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+    {/* Título centralizado absoluto */}
+    <h1 className="absolute left-1/2 -translate-x-1/2 text-center text-base sm:text-xl font-semibold text-slate-900 whitespace-nowrap">
+      Rastreamento de Pedidos
+    </h1>
+
+    {/* Logo direita */}
+    <div className="flex items-center">
+      <img
+        src="/cristal10-dark.png"
+        alt="Cristal 10 Representações"
+        className="h-6 sm:h-8 opacity-90"
       />
-      <button
-        onClick={onLogout}
-        className="px-3 py-2 text-xs rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
-      >
-        Sair
-      </button>
     </div>
   </div>
+
+  {/* Barra de busca (linha separada abaixo, centralizada) */}
+  <div className="max-w-6xl mx-auto px-4 sm:px-8 pb-3 flex justify-center">
+    <input
+      value={q}
+      onChange={(e) => setQ(e.target.value)}
+      placeholder="Buscar por indústria, nº ERP, status..."
+      className="w-full sm:w-80 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+    />
+  </div>
 </header>
+
+
 
       {/* Conteúdo */}
       <main className="p-4 sm:p-8 max-w-6xl mx-auto">
