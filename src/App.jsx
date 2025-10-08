@@ -43,6 +43,7 @@ const SAMPLE = [
     previsaoEntrega: "2026-01-30",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
+    produtos: "Calça Sarja"
   },
   {
     industria: "Luiz Eugenio",
@@ -53,6 +54,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-12-15",
     etapa: "3 - Na fila de produção",
     status: "Aguardando janela de produção",
+    produtos: "Camisas LD"
   },
   {
     industria: "Luiz Eugenio",
@@ -63,6 +65,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-12-15",
     etapa: "3 - Na fila de produção",
     status: "Aguardando janela de produção",
+    produtos: "Camisas Lisas"
   },
   {
     industria: "Luiz Eugenio",
@@ -73,6 +76,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-11-30",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
+    produtos: "Calças Sarja"
   },
   {
     industria: "Don Geuroth",
@@ -83,6 +87,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-10-25",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Etiquetas e Logos",
+    produtos: "Camisetas e Polos"
   },
 ];
 
@@ -124,15 +129,25 @@ function OrderCard({ o }) {
   const etaDays = daysDiff(o.previsaoEntrega);
   const tone = statusTone(o.status);
 
-  return (
-    <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm bg-white hover:shadow-md transition">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div className="text-slate-900 font-semibold text-lg">{o.industria}</div>
-          <div className="text-slate-500 text-sm">Nº ERP <span className="font-medium text-slate-700">{o.numeroERP}</span> • Emissão {formatDate(o.dataEmissao)}</div>
+ return (
+  <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm bg-white hover:shadow-md transition">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <div className="text-slate-900 font-semibold text-lg">{o.industria}</div>
+        <div className="text-slate-500 text-sm flex flex-wrap items-center gap-1">
+          <span>
+            Nº ERP <span className="font-medium text-slate-700">{o.numeroERP}</span> • Emissão {formatDate(o.dataEmissao)}
+          </span>
+          {o.produtos && (
+            <>
+              <span>•</span>
+              <span className="font-medium text-slate-700">{o.produtos}</span>
+            </>
+          )}
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs border ${tone}`}>{o.status}</div>
       </div>
+      <div className={`px-3 py-1 rounded-full text-xs border ${tone}`}>{o.status}</div>
+    </div>
 
       <div className="mt-4">
         <ProgressStepper etapa={o.etapa} />
