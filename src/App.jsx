@@ -329,22 +329,42 @@ function Dashboard({ onLogout }) {
           {filtered.length === 0 && <div className="text-slate-500 text-sm">Nenhum pedido encontrado com esse filtro.</div>}
         </div>
 
-      <footer className="mt-10 border-t border-slate-200 pt-4">
+<footer className="mt-10 border-t border-slate-200 pt-4">
   <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3">
+    {/* Texto lateral */}
     <div className="text-[11px] text-slate-500 text-center sm:text-left">
-      <p>Desenvolvido por <span className="font-semibold text-slate-700">Cristal10 Representações</span> • 2025</p>
+      <p>
+        Desenvolvido por{" "}
+        <span className="font-semibold text-slate-700">
+          Cristal10 Representações
+        </span>{" "}
+        • 2025
+      </p>
       <p>Atualizado em: 08/10/2025</p>
     </div>
 
-    <button
-      type="button"
-      onClick={handleExport}
-      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm hover:bg-slate-50 mt-2 sm:mt-0 sm:ml-auto"
-    >
-      Exportar CSV
-    </button>
+    {/* Botões à direita */}
+    <div className="flex gap-2 sm:ml-auto">
+      <a
+        href="https://chat.whatsapp.com/FhNZfiuOksvEaKwcr5avFF"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-xl bg-[#25D366] text-white px-4 py-2 text-sm shadow hover:bg-[#1EBE5D] transition whitespace-nowrap"
+      >
+        Fale com a Cristal10
+      </a>
+
+      <button
+        type="button"
+        onClick={handleExport}
+        className="rounded-xl bg-sky-600 text-white px-4 py-2 text-sm shadow hover:bg-sky-700 transition whitespace-nowrap"
+      >
+        Exportar CSV
+      </button>
+    </div>
   </div>
 </footer>
+
 
       </main>
     </div>
