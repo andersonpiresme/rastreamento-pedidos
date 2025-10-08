@@ -330,9 +330,9 @@ function Dashboard({ onLogout }) {
         </div>
 
 <footer className="mt-10 border-t border-slate-200 pt-4">
-  <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3">
-    {/* Texto lateral */}
-    <div className="text-[11px] text-slate-500 text-center sm:text-left">
+  <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-between gap-3">
+    {/* Texto lateral (fica abaixo no mobile) */}
+    <div className="text-[11px] text-slate-500 text-center sm:text-left mt-3 sm:mt-0">
       <p>
         Desenvolvido por{" "}
         <span className="font-semibold text-slate-700">
@@ -343,7 +343,7 @@ function Dashboard({ onLogout }) {
       <p>Atualizado em: 08/10/2025</p>
     </div>
 
-    {/* Botões à direita */}
+    {/* Botões (ficam acima no mobile) */}
     <div className="flex gap-2 sm:ml-auto">
       <a
         href="https://chat.whatsapp.com/FhNZfiuOksvEaKwcr5avFF"
@@ -364,6 +364,7 @@ function Dashboard({ onLogout }) {
     </div>
   </div>
 </footer>
+
 
 
       </main>
