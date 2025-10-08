@@ -1,5 +1,36 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+
+// ====== CSV Utils ======
+function toCSV(rows, headers, delimiter = ";") {
+  const escapeCell = (v) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+  const headerLine = headers.map((h) => h.header).join(delimiter);
+  const lines = rows.map((row) =>
+    headers.map((h) => escapeCell(h.accessor(row))).join(delimiter)
+  );
+  // BOM para Excel PT-BR reconhecer UTF-8
+  return "\uFEFF" + [headerLine, ...lines].join("\r\n");
+}
+
+function downloadCSV(filename, csvString) {
+  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+
+
 /* ==================== CONFIG ==================== */
 const STEPS = [
   { id: 1, label: "1 - Recebimento do Pedido" },
@@ -209,6 +240,33 @@ function Dashboard({ onLogout }) {
   const [q, setQ] = useState("");
   const data = SAMPLE;
 
+
+  const handleExport = () => {
+    // defina as colunas do CSV e como ler cada valor
+    const headers = [
+      { header: "Indústria",         accessor: (r) => r.industria },
+      { header: "Nº ERP",            accessor: (r) => r.numeroERP },
+      { header: "Produtos",          accessor: (r) => r.produtos ?? "" },
+      { header: "Data de Emissão",   accessor: (r) => formatDate(r.dataEmissao) },
+      { header: "Previsão de Entrega", accessor: (r) => formatDate(r.previsaoEntrega) },
+      { header: "Etapa",             accessor: (r) => r.etapa },
+      { header: "Status",            accessor: (r) => r.status },
+      { header: "Faturado (peças)",  accessor: (r) => r.faturado },
+      { header: "Pendente (peças)",  accessor: (r) => r.pendente },
+      { header: "ETA (dias)",        accessor: (r) => {
+          const d = daysDiff(r.previsaoEntrega);
+          return d === null ? "" : d;
+        }
+      },
+    ];
+
+    const csv = toCSV(filtered, headers, ";"); // troque para "," se preferir CSV padrão
+    const nome = `pedidos_filato_${new Date().toISOString().slice(0,10)}.csv`;
+    downloadCSV(nome, csv);
+  };
+
+
+
   const filtered = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return data;
@@ -271,10 +329,23 @@ function Dashboard({ onLogout }) {
           {filtered.length === 0 && <div className="text-slate-500 text-sm">Nenhum pedido encontrado com esse filtro.</div>}
         </div>
 
-        <footer className="mt-10 text-[11px] text-slate-500">
-          <p>Desenvolvido por <strong className="text-slate-700">Cristal10 Representações</strong> • {new Date().getFullYear()}</p>
-          <p>Atualizado em: 08/10/2025</p>
-        </footer>
+      <footer className="mt-10 border-t border-slate-200 pt-4">
+  <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3">
+    <div className="text-[11px] text-slate-500 text-center sm:text-left">
+      <p>Desenvolvido por <span className="font-semibold text-slate-700">Cristal10 Representações</span> • 2025</p>
+      <p>Atualizado em: 08/10/2025</p>
+    </div>
+
+    <button
+      type="button"
+      onClick={handleExport}
+      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm hover:bg-slate-50 mt-2 sm:mt-0 sm:ml-auto"
+    >
+      Exportar CSV
+    </button>
+  </div>
+</footer>
+
       </main>
     </div>
   );
