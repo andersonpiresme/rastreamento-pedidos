@@ -190,7 +190,7 @@ function OrderCard({ o }) {
           <div className="text-slate-900 font-semibold">{formatDate(o.previsaoEntrega)}</div>
         </div>
         <div className="bg-slate-50 rounded-xl p-3">
-          <div className="text-[11px] text-slate-500">ETA</div>
+          <div className="text-[11px] text-slate-500">Previsão de entrega (em dias)</div>
           <div
             className={`font-semibold ${
               etaDays === null ? "text-slate-900" : etaDays < 0 ? "text-emerald-700" : etaDays <= 15 ? "text-amber-700" : "text-slate-900"
