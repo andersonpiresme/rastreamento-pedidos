@@ -46,6 +46,8 @@ const statusTone = (status) => {
   if (s.includes("aguardando")) return "bg-amber-50 text-amber-700 border-amber-200";
   if (s.includes("cancel")) return "bg-red-50 text-red-700 border-red-200";
   if (s.includes("entrega") || s.includes("faturado")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (s.includes("linha")) return "bg-emerald-50 text-emerald-700 border-emerald-200"; // ✅ adiciona verde
+
   return "bg-slate-50 text-slate-700 border-slate-200";
 };
 
@@ -74,6 +76,17 @@ const daysDiff = (a, b = new Date()) => {
 
 /* ============== DADOS EXEMPLO (troque pela sua origem) ============== */
 const SAMPLE = [
+{
+    industria: "Luiz Eugenio",
+    dataEmissao: "2025-08-18",
+    faturado: 237,
+    pendente: 263,
+    numeroERP: "199548",
+    previsaoEntrega: "2025-12-15",
+    etapa: "4 - Em Produção",
+    status: "Camisas na linha de produção",
+    produtos: "Camisas Lisas",
+  },
   {
     industria: "KDU",
     dataEmissao: "2025-09-15",
@@ -84,6 +97,17 @@ const SAMPLE = [
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
     produtos: "Calça Sarja",
+  },
+  {
+    industria: "Don Geuroth",
+    dataEmissao: "2025-09-20",
+    faturado: 0,
+    pendente: 641,
+    numeroERP: "3101",
+    previsaoEntrega: "2025-11-13",
+    etapa: "2 - Recebimento de Materiais",
+    status: "Aguardando Etiquetas e Logos",
+    produtos: "Camisetas e Polos",
   },
   {
     industria: "Luiz Eugenio",
@@ -98,17 +122,6 @@ const SAMPLE = [
   },
   {
     industria: "Luiz Eugenio",
-    dataEmissao: "2025-08-18",
-    faturado: 237,
-    pendente: 263,
-    numeroERP: "199548",
-    previsaoEntrega: "2025-12-15",
-    etapa: "3 - Na fila de produção",
-    status: "Aguardando janela de produção",
-    produtos: "Camisas Lisas",
-  },
-  {
-    industria: "Luiz Eugenio",
     dataEmissao: "2025-09-26",
     faturado: 0,
     pendente: 601,
@@ -117,17 +130,6 @@ const SAMPLE = [
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
     produtos: "Calças Sarja",
-  },
-  {
-    industria: "Don Geuroth",
-    dataEmissao: "2025-09-20",
-    faturado: 0,
-    pendente: 641,
-    numeroERP: "3101",
-    previsaoEntrega: "2025-10-25",
-    etapa: "2 - Recebimento de Materiais",
-    status: "Aguardando Etiquetas e Logos",
-    produtos: "Camisetas e Polos",
   },
 ];
 
@@ -340,7 +342,7 @@ function Dashboard({ onLogout }) {
         </span>{" "}
         • 2025
       </p>
-      <p>Atualizado em: 08/10/2025</p>
+      <p>Atualizado em: 09/10/2025</p>
     </div>
 
     {/* Botões (ficam acima no mobile) */}
