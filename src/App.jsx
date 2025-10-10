@@ -82,10 +82,10 @@ const SAMPLE = [
     faturado: 0,
     pendente: 601,
     numeroERP: "200448",
-    previsaoEntrega: "2025-11-30",
+    previsaoEntrega: "2025-12-05",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
-    produtos: "Calças Sarja",
+    produtos: "Calças Malha",
   },
   {
     industria: "Luiz Eugenio",
@@ -118,7 +118,7 @@ const SAMPLE = [
     previsaoEntrega: "2026-01-30",
     etapa: "2 - Recebimento de Materiais",
     status: "Aguardando Tecidos",
-    produtos: "Calça Sarja",
+    produtos: "Calça Malha",
   },
   {
     industria: "Luiz Eugenio",
@@ -342,7 +342,7 @@ function Dashboard({ onLogout }) {
         </span>{" "}
         • 2025
       </p>
-      <p>Atualizado em: 09/10/2025</p>
+      <p>Atualizado em: 10/10/2025</p>
     </div>
 
     {/* Botões (ficam acima no mobile) */}
