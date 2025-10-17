@@ -36,6 +36,16 @@ const STEPS = [
   { id: 6, label: "6 - Entrega Realizada" },
 ];
 
+// cor por etapa (1..6)
+const STEP_COLOR = {
+  1: "bg-slate-400",
+  2: "bg-amber-500",
+  3: "bg-sky-500",
+  4: "bg-emerald-600",
+  5: "bg-indigo-600",
+  6: "bg-gray-700",
+};
+
 const statusTone = (status) => {
   const s = (status || "").toLowerCase();
   if (s.includes("aguardando")) return "bg-amber-50 text-amber-700 border-amber-200";
@@ -69,36 +79,41 @@ const daysDiff = (a, b = new Date()) => {
   return Math.ceil((da - db) / (1000 * 60 * 60 * 24));
 };
 
-/* ====== SUMÁRIO / AGREGAÇÃO ====== */
-function summarizeOrders(orders) {
-  const total = orders.length;
+/* ===== Helpers de datas para a timeline ===== */
+function getRange(items) {
+  // menor dataEmissao e maior previsaoEntrega
+  let min = null, max = null;
+  for (const o of items) {
+    const a = new Date(o.dataEmissao);
+    const b = new Date(o.previsaoEntrega);
+    if (!isNaN(a)) min = min ? Math.min(min, +a) : +a;
+    if (!isNaN(b)) max = max ? Math.max(max, +b) : +b;
+  }
+  if (!min || !max) {
+    const now = +new Date();
+    return { min: now, max: now + 1000 * 60 * 60 * 24 * 30 };
+  }
+  return { min, max };
+}
 
-  const stepsSummary = STEPS.map((s, i) => {
-    const idx = i + 1;
-    const count = orders.reduce((acc, o) => acc + (etapaIndex(o.etapa) === idx ? 1 : 0), 0);
-    return { id: s.id, label: s.label.replace(/^\d+\s-\s/, ""), count };
-  });
+function dateToPct(d, min, max) {
+  const x = +new Date(d);
+  const clamped = Math.min(Math.max(x, min), max);
+  return ((clamped - min) / (max - min)) * 100;
+}
 
-  const totals = orders.reduce(
-    (acc, o) => {
-      acc.faturado += Number(o.faturado || 0);
-      acc.pendente += Number(o.pendente || 0);
-      return acc;
-    },
-    { faturado: 0, pendente: 0 }
-  );
-
-  const statusMap = orders.reduce((m, o) => {
-    const k = (o.status || "").trim();
-    if (!k) return m;
-    m[k] = (m[k] || 0) + 1;
-    return m;
-  }, {});
-  const statusTop = Object.entries(statusMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3); // top 3
-
-  return { total, stepsSummary, totals, statusTop };
+function monthTicks(min, max, limit = 24) {
+  // gera ticks mensais do 1º dia do mês de min até o mês de max (com limite p/ não poluir)
+  const start = new Date(min); start.setDate(1);
+  const end = new Date(max); end.setDate(1);
+  const ticks = [];
+  let i = 0;
+  while (start <= end && i < limit) {
+    ticks.push(new Date(start));
+    start.setMonth(start.getMonth() + 1);
+    i++;
+  }
+  return ticks;
 }
 
 /* ============== DADOS EXEMPLO (troque pela sua origem) ============== */
@@ -260,79 +275,92 @@ function OrderCard({ o }) {
   );
 }
 
-/* ==================== TIMELINE MACRO ==================== */
-function MacroTimeline({ items }) {
-  const { total, stepsSummary, totals, statusTop } = useMemo(
-    () => summarizeOrders(items),
+/* ==================== TIMELINE POR PEDIDO (GANTT) ==================== */
+function OrderTimeline({ items }) {
+  // ordena por início para visual ficar “cronológico de cima p/ baixo”
+  const rows = useMemo(
+    () => [...items].sort((a, b) => new Date(a.dataEmissao) - new Date(b.dataEmissao)),
     [items]
   );
 
-  const maxCount = Math.max(1, ...stepsSummary.map((s) => s.count));
+  const { min, max } = useMemo(() => getRange(rows), [rows]);
+  const ticks = useMemo(() => monthTicks(min, max), [min, max]);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-      {/* título + chips de status */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-slate-900 font-semibold">
-          Visão geral • <span className="font-normal text-slate-600">{total} pedidos</span>
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {statusTop.map(([label, cnt]) => (
-            <span
-              key={label}
-              className={`px-3 py-1 rounded-full text-xs border ${statusTone(label)}`}
-              title={`${cnt} pedido(s)`}
-            >
-              {label} • {cnt}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* linha de etapas */}
-      <div className="mt-4">
-        <div className="relative flex items-center justify-between">
-          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-slate-200" />
-          {stepsSummary.map((s) => (
-            <div key={s.id} className="relative z-10 w-full flex flex-col items-center">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white border border-slate-300 flex items-center justify-center text-[13px] font-semibold text-slate-700">
-                  {s.count}
-                </div>
-                <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-sky-600"
-                    style={{ width: `${(s.count / maxCount) * 100}%` }}
-                    aria-hidden
-                  />
-                </div>
-              </div>
-              <span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight min-h-[28px]">
-                {s.label}
+      <div className="flex items-center justify-between">
+        <h2 className="text-slate-900 font-semibold">Linha do tempo dos pedidos</h2>
+        {/* legenda de etapas */}
+        <div className="hidden sm:flex flex-wrap gap-2">
+          {STEPS.map((s, i) => {
+            const idx = i + 1;
+            return (
+              <span key={s.id} className="inline-flex items-center gap-2 text-xs text-slate-600">
+                <span className={`inline-block w-3 h-3 rounded ${STEP_COLOR[idx]}`} />
+                {s.label.replace(/^\d+\s-\s/, "")}
               </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* totais */}
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-50 rounded-xl p-3">
-          <div className="text-[11px] text-slate-500">Pedidos</div>
-          <div className="text-slate-900 font-semibold">{total}</div>
-        </div>
-        <div className="bg-slate-50 rounded-xl p-3">
-          <div className="text-[11px] text-slate-500">Faturado (peças)</div>
-          <div className="text-slate-900 font-semibold">{totals.faturado}</div>
-        </div>
-        <div className="bg-slate-50 rounded-xl p-3">
-          <div className="text-[11px] text-slate-500">Pendente (peças)</div>
-          <div className="text-slate-900 font-semibold">{totals.pendente}</div>
-        </div>
-        <div className="bg-slate-50 rounded-xl p-3">
-          <div className="text-[11px] text-slate-500">Etapas com pedidos</div>
-          <div className="text-slate-900 font-semibold">
-            {stepsSummary.filter((s) => s.count > 0).length} / {STEPS.length}
+      {/* eixo X + barras — com scroll horizontal quando necessário */}
+      <div className="mt-4 overflow-x-auto">
+        <div className="min-w-[720px]">
+          {/* eixo X (meses) */}
+          <div className="relative h-8">
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-slate-200" />
+            {ticks.map((t) => {
+              const p = dateToPct(t, min, max);
+              return (
+                <div key={t.toISOString()} className="absolute -translate-x-1/2" style={{ left: `${p}%` }}>
+                  <div className="w-px h-3 bg-slate-300 mx-auto" />
+                  <div className="text-[10px] text-slate-500 mt-1 whitespace-nowrap">
+                    {t.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* linhas dos pedidos */}
+          <div className="mt-2 space-y-3">
+            {rows.map((o) => {
+              const left = dateToPct(o.dataEmissao, min, max);
+              const right = dateToPct(o.previsaoEntrega, min, max);
+              const width = Math.max(1.5, right - left); // evita barra invisível
+              const idx = etapaIndex(o.etapa);
+              const color = STEP_COLOR[idx] || "bg-slate-400";
+
+              return (
+                <div key={o.numeroERP + o.industria} className="relative">
+                  {/* rótulo à esquerda */}
+                  <div className="mb-1 text-[11px] text-slate-600">
+                    <span className="font-medium text-slate-800">{o.numeroERP}</span> • {o.industria} — {o.produtos}
+                  </div>
+
+                  {/* trilho + barra */}
+                  <div className="relative h-6 rounded-full bg-slate-100">
+                    <div
+                      className={`absolute top-0 bottom-0 rounded-full ${color} text-white/90 text-[10px] flex items-center px-2`}
+                      style={{ left: `${left}%`, width: `${width}%` }}
+                      title={`De ${formatDate(o.dataEmissao)} até ${formatDate(o.previsaoEntrega)} • ${o.etapa}`}
+                    >
+                      <span className="truncate">{o.etapa}</span>
+                    </div>
+                  </div>
+
+                  {/* datas nos extremos (opcional) */}
+                  <div className="flex text-[10px] text-slate-500 justify-between mt-1">
+                    <span>{formatDate(o.dataEmissao)}</span>
+                    <span>{formatDate(o.previsaoEntrega)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {rows.length === 0 && (
+              <div className="text-slate-500 text-sm">Nenhum pedido para exibir na timeline.</div>
+            )}
           </div>
         </div>
       </div>
@@ -404,11 +432,12 @@ function Dashboard({ onLogout }) {
 
       {/* Conteúdo */}
       <main className="p-4 sm:p-8 max-w-6xl mx-auto">
-        {/* ✅ timeline macro antes dos cards */}
+        {/* ✅ timeline por pedido (Gantt) */}
         <div className="mb-4 sm:mb-6">
-          <MacroTimeline items={filtered} />
+          <OrderTimeline items={filtered} /> {/* troque por 'data' para visão geral */}
         </div>
 
+        {/* Cards detalhados */}
         <div className="grid gap-4 sm:gap-6 grid-cols-1">
           {filtered.map((o) => (
             <OrderCard key={o.numeroERP + o.industria} o={o} />
