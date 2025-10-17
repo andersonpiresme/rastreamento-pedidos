@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-
-// ====== CSV Utils ======
+/* ==================== CSV Utils ==================== */
 function toCSV(rows, headers, delimiter = ";") {
   const escapeCell = (v) => {
     if (v === null || v === undefined) return "";
@@ -12,8 +11,7 @@ function toCSV(rows, headers, delimiter = ";") {
   const lines = rows.map((row) =>
     headers.map((h) => escapeCell(h.accessor(row))).join(delimiter)
   );
-  // BOM para Excel PT-BR reconhecer UTF-8
-  return "\uFEFF" + [headerLine, ...lines].join("\r\n");
+  return "\uFEFF" + [headerLine, ...lines].join("\r\n"); // BOM p/ Excel PT-BR
 }
 
 function downloadCSV(filename, csvString) {
@@ -27,9 +25,6 @@ function downloadCSV(filename, csvString) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-
-
 
 /* ==================== CONFIG ==================== */
 const STEPS = [
@@ -46,8 +41,7 @@ const statusTone = (status) => {
   if (s.includes("aguardando")) return "bg-amber-50 text-amber-700 border-amber-200";
   if (s.includes("cancel")) return "bg-red-50 text-red-700 border-red-200";
   if (s.includes("entrega") || s.includes("faturado")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (s.includes("linha")) return "bg-emerald-50 text-emerald-700 border-emerald-200"; // ✅ adiciona verde
-
+  if (s.includes("linha")) return "bg-emerald-50 text-emerald-700 border-emerald-200"; // produção: verde
   return "bg-slate-50 text-slate-700 border-slate-200";
 };
 
@@ -67,6 +61,7 @@ const formatDate = (d) => {
     return date.toLocaleDateString("pt-BR");
   }
 };
+
 const daysDiff = (a, b = new Date()) => {
   const da = new Date(a);
   const db = new Date(b);
@@ -74,9 +69,41 @@ const daysDiff = (a, b = new Date()) => {
   return Math.ceil((da - db) / (1000 * 60 * 60 * 24));
 };
 
+/* ====== SUMÁRIO / AGREGAÇÃO ====== */
+function summarizeOrders(orders) {
+  const total = orders.length;
+
+  const stepsSummary = STEPS.map((s, i) => {
+    const idx = i + 1;
+    const count = orders.reduce((acc, o) => acc + (etapaIndex(o.etapa) === idx ? 1 : 0), 0);
+    return { id: s.id, label: s.label.replace(/^\d+\s-\s/, ""), count };
+  });
+
+  const totals = orders.reduce(
+    (acc, o) => {
+      acc.faturado += Number(o.faturado || 0);
+      acc.pendente += Number(o.pendente || 0);
+      return acc;
+    },
+    { faturado: 0, pendente: 0 }
+  );
+
+  const statusMap = orders.reduce((m, o) => {
+    const k = (o.status || "").trim();
+    if (!k) return m;
+    m[k] = (m[k] || 0) + 1;
+    return m;
+  }, {});
+  const statusTop = Object.entries(statusMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3); // top 3
+
+  return { total, stepsSummary, totals, statusTop };
+}
+
 /* ============== DADOS EXEMPLO (troque pela sua origem) ============== */
 const SAMPLE = [
-    {
+  {
     industria: "Luiz Eugenio",
     dataEmissao: "2025-09-26",
     faturado: 0,
@@ -154,9 +181,9 @@ function ProgressStepper({ etapa }) {
               >
                 {stepNo}
               </div>
-		<span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight min-h-[32px] flex items-start justify-center text-balance">
-  			{s.label.replace(/^\d+\s-\s/, "")}
-		</span>
+              <span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight min-h-[32px] flex items-start justify-center text-balance">
+                {s.label.replace(/^\d+\s-\s/, "")}
+              </span>
             </div>
           );
         })}
@@ -200,12 +227,8 @@ function OrderCard({ o }) {
           <div className="h-full bg-sky-600" style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-2 text-xs text-slate-600 flex items-center justify-between">
-          <span>
-            Etapa atual: <span className="font-medium text-slate-800">{o.etapa}</span>
-          </span>
-          <span>
-            Progresso: <span className="font-medium text-slate-800">{pct}%</span>
-          </span>
+          <span>Etapa atual: <span className="font-medium text-slate-800">{o.etapa}</span></span>
+          <span>Progresso: <span className="font-medium text-slate-800">{pct}%</span></span>
         </div>
       </div>
 
@@ -237,37 +260,90 @@ function OrderCard({ o }) {
   );
 }
 
+/* ==================== TIMELINE MACRO ==================== */
+function MacroTimeline({ items }) {
+  const { total, stepsSummary, totals, statusTop } = useMemo(
+    () => summarizeOrders(items),
+    [items]
+  );
+
+  const maxCount = Math.max(1, ...stepsSummary.map((s) => s.count));
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+      {/* título + chips de status */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-slate-900 font-semibold">
+          Visão geral • <span className="font-normal text-slate-600">{total} pedidos</span>
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {statusTop.map(([label, cnt]) => (
+            <span
+              key={label}
+              className={`px-3 py-1 rounded-full text-xs border ${statusTone(label)}`}
+              title={`${cnt} pedido(s)`}
+            >
+              {label} • {cnt}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* linha de etapas */}
+      <div className="mt-4">
+        <div className="relative flex items-center justify-between">
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-slate-200" />
+          {stepsSummary.map((s) => (
+            <div key={s.id} className="relative z-10 w-full flex flex-col items-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-white border border-slate-300 flex items-center justify-center text-[13px] font-semibold text-slate-700">
+                  {s.count}
+                </div>
+                <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-sky-600"
+                    style={{ width: `${(s.count / maxCount) * 100}%` }}
+                    aria-hidden
+                  />
+                </div>
+              </div>
+              <span className="mt-2 text-[10px] sm:text-xs text-slate-600 text-center leading-tight min-h-[28px]">
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* totais */}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-slate-50 rounded-xl p-3">
+          <div className="text-[11px] text-slate-500">Pedidos</div>
+          <div className="text-slate-900 font-semibold">{total}</div>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <div className="text-[11px] text-slate-500">Faturado (peças)</div>
+          <div className="text-slate-900 font-semibold">{totals.faturado}</div>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <div className="text-[11px] text-slate-500">Pendente (peças)</div>
+          <div className="text-slate-900 font-semibold">{totals.pendente}</div>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3">
+          <div className="text-[11px] text-slate-500">Etapas com pedidos</div>
+          <div className="text-slate-900 font-semibold">
+            {stepsSummary.filter((s) => s.count > 0).length} / {STEPS.length}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ==================== DASHBOARD ==================== */
 function Dashboard({ onLogout }) {
   const [q, setQ] = useState("");
   const data = SAMPLE;
-
-
-  const handleExport = () => {
-    // defina as colunas do CSV e como ler cada valor
-    const headers = [
-      { header: "Indústria",         accessor: (r) => r.industria },
-      { header: "Nº ERP",            accessor: (r) => r.numeroERP },
-      { header: "Produtos",          accessor: (r) => r.produtos ?? "" },
-      { header: "Data de Emissão",   accessor: (r) => formatDate(r.dataEmissao) },
-      { header: "Previsão de Entrega", accessor: (r) => formatDate(r.previsaoEntrega) },
-      { header: "Etapa",             accessor: (r) => r.etapa },
-      { header: "Status",            accessor: (r) => r.status },
-      { header: "Faturado (peças)",  accessor: (r) => r.faturado },
-      { header: "Pendente (peças)",  accessor: (r) => r.pendente },
-      { header: "ETA (dias)",        accessor: (r) => {
-          const d = daysDiff(r.previsaoEntrega);
-          return d === null ? "" : d;
-        }
-      },
-    ];
-
-    const csv = toCSV(filtered, headers, ";"); // troque para "," se preferir CSV padrão
-    const nome = `pedidos_filato_${new Date().toISOString().slice(0,10)}.csv`;
-    downloadCSV(nome, csv);
-  };
-
-
 
   const filtered = useMemo(() => {
     const k = q.trim().toLowerCase();
@@ -277,53 +353,62 @@ function Dashboard({ onLogout }) {
     );
   }, [q, data]);
 
+  const handleExport = () => {
+    const headers = [
+      { header: "Indústria", accessor: (r) => r.industria },
+      { header: "Nº ERP", accessor: (r) => r.numeroERP },
+      { header: "Produtos", accessor: (r) => r.produtos ?? "" },
+      { header: "Data de Emissão", accessor: (r) => formatDate(r.dataEmissao) },
+      { header: "Previsão de Entrega", accessor: (r) => formatDate(r.previsaoEntrega) },
+      { header: "Etapa", accessor: (r) => r.etapa },
+      { header: "Status", accessor: (r) => r.status },
+      { header: "Faturado (peças)", accessor: (r) => r.faturado },
+      { header: "Pendente (peças)", accessor: (r) => r.pendente },
+      {
+        header: "ETA (dias)",
+        accessor: (r) => {
+          const d = daysDiff(r.previsaoEntrega);
+          return d === null ? "" : d;
+        },
+      },
+    ];
+    const csv = toCSV(filtered, headers, ";");
+    const nome = `pedidos_filato_${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadCSV(nome, csv);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Header com logo */}
-
-
-<header className="bg-white/80 backdrop-blur sticky top-0 z-20 border-b border-slate-200">
-  <div className="relative max-w-6xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
-    
-    {/* Logo esquerda */}
-    <div className="flex items-center">
-      <img
-        src="/cristal10.svg"
-        alt="Filato Bene"
-        className="h-6 sm:h-8"
-      />
-    </div>
-
-    {/* Título centralizado absoluto */}
-    <h1 className="absolute left-1/2 -translate-x-1/2 text-center text-base sm:text-xl font-semibold text-slate-900 whitespace-nowrap">
-      Rastreamento de Pedidos
-    </h1>
-
-    {/* Logo direita */}
-    <div className="flex items-center">
-      <img
-        src="/cristal10-dark.png"
-        alt="Cristal 10 Representações"
-        className="h-6 sm:h-8 opacity-90"
-      />
-    </div>
-  </div>
-
-  {/* Barra de busca (linha separada abaixo, centralizada) */}
-  <div className="max-w-6xl mx-auto px-4 sm:px-8 pb-3 flex justify-center">
-    <input
-      value={q}
-      onChange={(e) => setQ(e.target.value)}
-      placeholder="Buscar por indústria, nº ERP, status..."
-      className="w-full sm:w-80 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-    />
-  </div>
-</header>
-
-
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur sticky top-0 z-20 border-b border-slate-200">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
+          <div className="flex items-center">
+            <img src="/cristal10.svg" alt="Filato Bene" className="h-6 sm:h-8" />
+          </div>
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-center text-base sm:text-xl font-semibold text-slate-900 whitespace-nowrap">
+            Rastreamento de Pedidos
+          </h1>
+          <div className="flex items-center">
+            <img src="/cristal10-dark.png" alt="Cristal 10 Representações" className="h-6 sm:h-8 opacity-90" />
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 pb-3 flex justify-center">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar por indústria, nº ERP, status..."
+            className="w-full sm:w-80 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+        </div>
+      </header>
 
       {/* Conteúdo */}
       <main className="p-4 sm:p-8 max-w-6xl mx-auto">
+        {/* ✅ timeline macro antes dos cards */}
+        <div className="mb-4 sm:mb-6">
+          <MacroTimeline items={filtered} />
+        </div>
+
         <div className="grid gap-4 sm:gap-6 grid-cols-1">
           {filtered.map((o) => (
             <OrderCard key={o.numeroERP + o.industria} o={o} />
@@ -331,44 +416,35 @@ function Dashboard({ onLogout }) {
           {filtered.length === 0 && <div className="text-slate-500 text-sm">Nenhum pedido encontrado com esse filtro.</div>}
         </div>
 
-<footer className="mt-10 border-t border-slate-200 pt-4">
-  <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-between gap-3">
-    {/* Texto lateral (fica abaixo no mobile) */}
-    <div className="text-[11px] text-slate-500 text-center sm:text-left mt-3 sm:mt-0">
-      <p>
-        Desenvolvido por{" "}
-        <span className="font-semibold text-slate-700">
-          Cristal10 Representações
-        </span>{" "}
-        • 2025
-      </p>
-      <p>Atualizado em: 10/10/2025</p>
-    </div>
-
-    {/* Botões (ficam acima no mobile) */}
-    <div className="flex gap-2 sm:ml-auto">
-      <a
-        href="https://chat.whatsapp.com/FhNZfiuOksvEaKwcr5avFF"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="rounded-xl bg-[#25D366] text-white px-4 py-2 text-sm shadow hover:bg-[#1EBE5D] transition whitespace-nowrap"
-      >
-        Fale com a Cristal10
-      </a>
-
-      <button
-        type="button"
-        onClick={handleExport}
-        className="rounded-xl bg-sky-600 text-white px-4 py-2 text-sm shadow hover:bg-sky-700 transition whitespace-nowrap"
-      >
-        Exportar CSV
-      </button>
-    </div>
-  </div>
-</footer>
-
-
-
+        {/* Footer */}
+        <footer className="mt-10 border-t border-slate-200 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-between gap-3">
+            <div className="text-[11px] text-slate-500 text-center sm:text-left mt-3 sm:mt-0">
+              <p>
+                Desenvolvido por{" "}
+                <span className="font-semibold text-slate-700">Cristal10 Representações</span> • 2025
+              </p>
+              <p>Atualizado em: 10/10/2025</p>
+            </div>
+            <div className="flex gap-2 sm:ml-auto">
+              <a
+                href="https://chat.whatsapp.com/FhNZfiuOksvEaKwcr5avFF"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-xl bg-[#25D366] text-white px-4 py-2 text-sm shadow hover:bg-[#1EBE5D] transition whitespace-nowrap"
+              >
+                Fale com a Cristal10
+              </a>
+              <button
+                type="button"
+                onClick={handleExport}
+                className="rounded-xl bg-sky-600 text-white px-4 py-2 text-sm shadow hover:bg-sky-700 transition whitespace-nowrap"
+              >
+                Exportar CSV
+              </button>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
@@ -383,7 +459,6 @@ export default function App() {
 
   const senhaCorreta = "filato2025"; // troque aqui
 
-  // manter sessão (localStorage)
   useEffect(() => {
     const ok = localStorage.getItem("authOK") === "1";
     if (ok) setAutenticado(true);
@@ -409,16 +484,11 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-indigo-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo topo login */}
           <div className="flex items-center justify-center mb-6">
-            {/* usa a variação PNG para mais contraste em fundos claros */}
             <img src="/cristal10-dark.png" alt="Cristal 10" className="h-10" />
           </div>
 
-          <form
-            onSubmit={handleLogin}
-            className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8"
-          >
+          <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8">
             <h1 className="text-2xl font-semibold text-slate-900 text-center">Área Restrita</h1>
             <p className="mt-1 text-center text-slate-500 text-sm">
               Acesse o rastreamento de pedidos Filato Bene
@@ -457,10 +527,7 @@ export default function App() {
               </label>
             </div>
 
-            <button
-              type="submit"
-              className="mt-5 w-full bg-sky-600 text-white py-2.5 rounded-lg hover:bg-sky-700 transition shadow-sm"
-            >
+            <button type="submit" className="mt-5 w-full bg-sky-600 text-white py-2.5 rounded-lg hover:bg-sky-700 transition shadow-sm">
               Entrar
             </button>
 
@@ -473,6 +540,5 @@ export default function App() {
     );
   }
 
-  // autenticado → painel
   return <Dashboard onLogout={handleLogout} />;
 }
