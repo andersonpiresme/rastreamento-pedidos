@@ -135,10 +135,10 @@ const SAMPLE = [
     faturado: 633,
     pendente: 698,
     numeroERP: "198745",
-    previsaoEntrega: "2025-12-15",
+    previsaoEntrega: "2025-10-31",
     etapa: "3 - Na fila de produção",
     status: "Aguardando janela de produção",
-    produtos: "Camisas LD",
+    produtos: "Camisas Lisas",
   },
   {
     industria: "Don Geuroth",
@@ -171,7 +171,7 @@ const SAMPLE = [
     previsaoEntrega: "2025-12-15",
     etapa: "4 - Em Produção",
     status: "Camisas na linha de produção",
-    produtos: "Camisas Lisas",
+    produtos: "Camisas LD",
   },
 ];
 
